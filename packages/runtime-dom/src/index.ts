@@ -40,6 +40,10 @@ let renderer: Renderer<Element | ShadowRoot> | HydrationRenderer
 
 let enabledHydration = false
 
+/**
+ * 调用时创建一个渲染器对象
+ * 延迟创建渲染器对象，这样可以使核心渲染器逻辑在用户只从Vue中导入响应式工具时可以被tree-shaking。
+ */
 function ensureRenderer() {
   return (
     renderer ||
@@ -64,7 +68,12 @@ export const hydrate = ((...args) => {
   ensureHydrationRenderer().hydrate(...args)
 }) as RootHydrateFunction
 
+
+/**
+ * Vue应用入口
+ */
 export const createApp = ((...args) => {
+  // 创建app对象
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {
@@ -73,10 +82,18 @@ export const createApp = ((...args) => {
   }
 
   const { mount } = app
+
+  /**
+   * 重写mount方法
+   * @param containerOrSelector 字符串选择器或者是dom对象
+   * @returns 
+   */
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
+    // 标准化容器
     const container = normalizeContainer(containerOrSelector)
     if (!container) return
 
+    // 如果组件对象没有render函数和template模板，取innerHTML作为组件模板内容
     const component = app._component
     if (!isFunction(component) && !component.render && !component.template) {
       // __UNSAFE__
@@ -84,7 +101,7 @@ export const createApp = ((...args) => {
       // The user must make sure the in-DOM template is trusted. If it's
       // rendered by the server, the template should not contain any user data.
       component.template = container.innerHTML
-      // 2.x compat check
+      // 2.x compat check 兼容性检查
       if (__COMPAT__ && __DEV__) {
         for (let i = 0; i < container.attributes.length; i++) {
           const attr = container.attributes[i]
@@ -99,8 +116,9 @@ export const createApp = ((...args) => {
       }
     }
 
-    // clear content before mounting
+    // clear content before mounting 挂载前清空容器内容
     container.innerHTML = ''
+    // 挂载
     const proxy = mount(container, false, resolveRootNamespace(container))
     if (container instanceof Element) {
       container.removeAttribute('v-cloak')

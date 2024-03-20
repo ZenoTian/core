@@ -198,10 +198,17 @@ export type CreateAppFunction<HostElement> = (
 
 let uid = 0
 
+
 export function createAppAPI<HostElement>(
   render: RootRenderFunction<HostElement>,
   hydrate?: RootHydrateFunction,
 ): CreateAppFunction<HostElement> {
+
+  /**
+   * 创建时会将app组件对象作为根组件传入
+   * @param rootComponent 根组件的对象
+   * @param rootProps prop
+   */
   return function createApp(rootComponent, rootProps = null) {
     if (!isFunction(rootComponent)) {
       rootComponent = extend({}, rootComponent)
@@ -302,6 +309,12 @@ export function createAppAPI<HostElement>(
         return app
       },
 
+      /**
+       * createApp中的mount方法
+       * @description 此处的app.mount是可跨平台的组件渲染流程
+       * @param rootContainer 可根据不同渲染平台是不同的对象
+       * @param isHydrate 是否是服务端渲染
+       */
       mount(
         rootContainer: HostElement,
         isHydrate?: boolean,
@@ -316,6 +329,7 @@ export function createAppAPI<HostElement>(
                 ` you need to unmount the previous app by calling \`app.unmount()\` first.`,
             )
           }
+          // 创建根组件的vnode
           const vnode = createVNode(rootComponent, rootProps)
           // store app context on the root VNode.
           // this will be set on the root instance on initial mount.
@@ -341,8 +355,10 @@ export function createAppAPI<HostElement>(
           }
 
           if (isHydrate && hydrate) {
+            // 服务端渲染使用
             hydrate(vnode as VNode<Node, Element>, rootContainer as any)
           } else {
+            // 非服务端渲染
             render(vnode, rootContainer, namespace)
           }
           isMounted = true

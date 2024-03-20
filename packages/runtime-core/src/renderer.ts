@@ -2399,6 +2399,10 @@ function baseCreateRenderer(
     )
   }
 
+  /**
+   * baseCreateRenderer 返回
+   * createApp 由 createAppAPI 返回
+   */
   return {
     render,
     hydrate,
