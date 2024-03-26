@@ -744,6 +744,7 @@ function propHasMismatch(
     const actualMap = toStyleMap(actual)
     const expectedMap = toStyleMap(expected)
     // If `v-show=false`, `display: 'none'` should be added to expected
+    // 如果`v—show = false`，则应将`display：'none'`添加到期望值中
     if (vnode.dirs) {
       for (const { dir, value } of vnode.dirs) {
         // @ts-expect-error only vShow has this internal name

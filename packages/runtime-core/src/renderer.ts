@@ -324,7 +324,35 @@ function baseCreateRenderer(
   createHydrationFns: typeof createHydrationFunctions,
 ): HydrationRenderer
 
-// implementation
+// implementation 具体实现
+/**
+ * 
+ * @step1 初始化全局变量
+ * @step2 创建patch函数，根据不同的vnode类型执行不同的逻辑
+ * @step3 创建processText函数，处理文本节点
+ * @step4 创建processCommentNode函数，处理注释节点
+ * @step5 创建mountStaticNode函数，挂载静态节点
+ * @step6 创建patchStaticNode函数，更新静态节点
+ * @step7 创建moveStaticNode函数，移动静态节点
+ * @step8 创建removeStaticNode函数，移除静态节点
+ * @step9 创建processElement函数，挂载元素。只针对组件类型的vnode
+ * @step10 创建mountElement函数，挂载元素。只针对组件类型的vnode
+ * @step11 创建setScopeId函数，设置scopeId
+ * @step12 创建patchElement函数，更新元素。只针对组件类型的vnode
+ * @step13 创建patchProps函数，更新props
+ * @step14 创建processFragment函数，挂载片段
+ * @step15 创建mountChildren函数，挂载子节点，深度优先递归调用path
+ * @step16 创建patchChildren函数，更新子节点
+ * @step17 创建patchBlockChildren函数，更新块子节点
+ * @step18 创建move函数，移动节点
+ * @step19 创建next函数，获取下一个节点
+ * @step20 创建unmount函数，卸载节点 
+ * @step21 创建remove函数，移除节点
+ * @step22 创建unmountChildren函数，卸载子节点
+ * @step23 创建processTextOrComment函数，处理文本或注释节点
+ * @step24 创建setupRenderEffect函数，设置渲染effect
+ * @step25 创建queuePostRenderEffect函数，队列渲染effect
+ */
 function baseCreateRenderer(
   options: RendererOptions,
   createHydrationFns?: typeof createHydrationFunctions,
@@ -340,6 +368,7 @@ function baseCreateRenderer(
     setDevtoolsHook(target.__VUE_DEVTOOLS_GLOBAL_HOOK__, target)
   }
 
+  // 这些方法以host开头的都是平台相关的，根据不同平台实现
   const {
     insert: hostInsert,
     remove: hostRemove,
@@ -355,8 +384,19 @@ function baseCreateRenderer(
     insertStaticContent: hostInsertStaticContent,
   } = options
 
-  // Note: functions inside this closure should use `const xxx = () => {}`
-  // style in order to prevent being inlined by minifiers.
+  // Note: functions inside this closure should use `const xxx = () => {}` 使用箭头函数
+  // style in order to prevent being inlined by minifiers. TODO: 防止被压缩(minifiers)时变成内联
+  /**
+   * patch函数实现，会根据不同的vnode类型执行不同的逻辑
+   * 根据vnode挂载dom 或者 更新dom
+   * @param n1 旧vnode， n1为null时表示是一次挂载的过程
+   * @param n2 新vnode节点，根据这个vnode类型执行对应逻辑
+   * @param container 表示dom容器，挂载的目标
+   * @step1 如果n1和n2相同，直接返回
+   * @step2 如果n1存在并且n1和n2类型不同，卸载n1
+   * @step3 根据不同节点类型处理:文本节点、注释节点、静态节点、片段、元素、组件、teleport、suspense、无效vnode类型
+   * @step4 有需要的话设置ref
+   */
   const patch: PatchFn = (
     n1,
     n2,
@@ -372,7 +412,7 @@ function baseCreateRenderer(
       return
     }
 
-    // patching & not same type, unmount old tree
+    // patching & not same type, unmount old tree 挂载并且不是相同类型，卸载旧树
     if (n1 && !isSameVNodeType(n1, n2)) {
       anchor = getNextHostNode(n1)
       unmount(n1, parentComponent, parentSuspense, true)
@@ -617,6 +657,17 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * @description 挂载元素。只针对组件类型的vnode
+   * @step1 根据不同平台创建元素，处理其他类型节点或挂在子节点
+   * @step2 调用created生命周期
+   * @step3 设置scopeId
+   * @step4 处理props
+   * @step5 设置vnodeHook
+   * @step6 调用beforeMount生命周期
+   * @step7 插入到dom
+   * @step7 调用mounted生命周期
+   */
   const mountElement = (
     vnode: VNode,
     container: RendererElement,
@@ -629,8 +680,10 @@ function baseCreateRenderer(
   ) => {
     let el: RendererElement
     let vnodeHook: VNodeHook | undefined | null
+    
     const { props, shapeFlag, transition, dirs } = vnode
 
+    // @step1 根据不同平台创建元素
     el = vnode.el = hostCreateElement(
       vnode.type as string,
       namespace,
@@ -641,11 +694,13 @@ function baseCreateRenderer(
     // mount children first, since some props may rely on child content
     // being already rendered, e.g. `<select value>`
     if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      // 处理文本节点
       hostSetElementText(el, vnode.children as string)
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      // 递归处理处理子元素，调用patch，TODO: 对child会预处理
       mountChildren(
         vnode.children as VNodeArrayChildren,
-        el,
+        el, // el是父节点，通过传参建立父子关系
         null,
         parentComponent,
         parentSuspense,
@@ -654,13 +709,13 @@ function baseCreateRenderer(
         optimized,
       )
     }
-
     if (dirs) {
+      // 调用生命周期呗 直译：调用指令勾子
       invokeDirectiveHook(vnode, null, parentComponent, 'created')
     }
-    // scopeId
+    // 设置scopeId
     setScopeId(el, vnode, vnode.scopeId, slotScopeIds, parentComponent)
-    // props
+    // props 处理props如class style event等
     if (props) {
       for (const key in props) {
         if (key !== 'value' && !isReservedProp(key)) {
@@ -765,6 +820,10 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * @description 挂载子节点，深度优先递归调用path。
+   * 用patch而不是直接mountElement是因为子节点可能含有其他嵌套的组件
+   */
   const mountChildren: MountChildrenFn = (
     children,
     container,
@@ -818,6 +877,7 @@ function baseCreateRenderer(
       invokeVNodeHook(vnodeHook, parentComponent, n2, n1)
     }
     if (dirs) {
+      // dirs
       invokeDirectiveHook(n2, n1, parentComponent, 'beforeUpdate')
     }
     parentComponent && toggleRecurse(parentComponent, true)
@@ -1152,6 +1212,9 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * 处理组件，参数同patch函数
+   */
   const processComponent = (
     n1: VNode | null,
     n2: VNode,
@@ -1165,7 +1228,9 @@ function baseCreateRenderer(
   ) => {
     n2.slotScopeIds = slotScopeIds
     if (n1 == null) {
+      // 首次挂载
       if (n2.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE) {
+        // kept-alive components.  激活缓存的组件
         ;(parentComponent!.ctx as KeepAliveContext).activate(
           n2,
           container,
@@ -1174,6 +1239,7 @@ function baseCreateRenderer(
           optimized,
         )
       } else {
+        // 挂载
         mountComponent(
           n2,
           container,
@@ -1185,10 +1251,23 @@ function baseCreateRenderer(
         )
       }
     } else {
+      // 更新
       updateComponent(n1, n2, optimized)
     }
   }
 
+  /**
+   * 挂载组件
+   * @param initialVNode 
+   * @param container 
+   * @param anchor 
+   * @param parentComponent 
+   * @param parentSuspense 
+   * @param namespace 
+   * @param optimized 
+   * @step1 如果是keepAlive组件，需要注入renderer
+   * @step2 如果不是keepAlive组件，设置组件实例
+   */
   const mountComponent: MountComponentFn = (
     initialVNode,
     container,
@@ -1200,9 +1279,12 @@ function baseCreateRenderer(
   ) => {
     // 2.x compat may pre-create the component instance before actually
     // mounting
+    // 2.x 可能会预先创建组件实例，
     const compatMountInstance =
       __COMPAT__ && initialVNode.isCompatRoot && initialVNode.component
-    const instance: ComponentInternalInstance =
+    
+      // 创建实例
+      const instance: ComponentInternalInstance =
       compatMountInstance ||
       (initialVNode.component = createComponentInstance(
         initialVNode,
@@ -1220,15 +1302,18 @@ function baseCreateRenderer(
     }
 
     // inject renderer internals for keepAlive
+    // 如果是keepAlive组件，需要注入renderer
     if (isKeepAlive(initialVNode)) {
       ;(instance.ctx as KeepAliveContext).renderer = internals
     }
 
     // resolve props and slots for setup context
+    // 解析props和slots
     if (!(__COMPAT__ && compatMountInstance)) {
       if (__DEV__) {
         startMeasure(instance, `init`)
       }
+      // 设置组件实例
       setupComponent(instance)
       if (__DEV__) {
         endMeasure(instance, `init`)
@@ -1237,16 +1322,19 @@ function baseCreateRenderer(
 
     // setup() is async. This component relies on async logic to be resolved
     // before proceeding
+    // setup()是异步的。在继续之前，这个组件依赖于异步逻辑的解析
     if (__FEATURE_SUSPENSE__ && instance.asyncDep) {
       parentSuspense && parentSuspense.registerDep(instance, setupRenderEffect)
 
       // Give it a placeholder if this is not hydration
+      // 如果不是服务端渲染，给它一个占位符
       // TODO handle self-defined fallback
       if (!initialVNode.el) {
         const placeholder = (instance.subTree = createVNode(Comment))
         processCommentNode(null, placeholder, container!, anchor)
       }
     } else {
+      // 设置并运行带副作用的渲染函数
       setupRenderEffect(
         instance,
         initialVNode,
@@ -1299,6 +1387,22 @@ function baseCreateRenderer(
     }
   }
 
+  /**
+   * @description 设置并运行带副作用的渲染函数
+   * @step1 调用beforeUpdate生命周期
+   * @step2 更新props和slots
+   * @step3 调用updated生命周期
+   * @step4 更新子节点
+   * @step5 更新refs
+   * @step6 更新dir
+   * @step7 更新keepAlive
+   * @step8 更新组件实例
+   * @step9 更新vnodeHook
+   * @step10 更新devtools
+   * @step11 更新scopeId
+   * @step12 更新el
+   * 
+   */
   const setupRenderEffect: SetupRenderEffectFn = (
     instance,
     initialVNode,
@@ -1581,6 +1685,7 @@ function baseCreateRenderer(
       instance.scope, // track it in component's effect scope
     ))
 
+    // 创建响应式的副作用渲染函数, 一次渲染完成后，重新执行一遍副作用的代码
     const update: SchedulerJob = (instance.update = () => {
       if (effect.dirty) {
         effect.run()
@@ -2353,12 +2458,20 @@ function baseCreateRenderer(
   }
 
   let isFlushing = false
+  /**
+   * 
+   * @param vnode 这里的vnode是要渲染的vnode
+   * @param container 
+   * @param namespace 
+   */
   const render: RootRenderFunction = (vnode, container, namespace) => {
     if (vnode == null) {
       if (container._vnode) {
+        //vnode为空 销毁组件
         unmount(container._vnode, null, null, true)
       }
     } else {
+      // 创建或更新
       patch(
         container._vnode || null,
         vnode,
@@ -2375,6 +2488,7 @@ function baseCreateRenderer(
       flushPostFlushCbs()
       isFlushing = false
     }
+    // 缓存vnode，表示已经渲染
     container._vnode = vnode
   }
 
@@ -2401,7 +2515,8 @@ function baseCreateRenderer(
 
   /**
    * baseCreateRenderer 返回
-   * createApp 由 createAppAPI 返回
+   * render: 根组件渲染函数
+   * createApp: 由 createAppAPI 返回、app上一些方法
    */
   return {
     render,

@@ -121,6 +121,11 @@ export function withDirectives<T extends VNode>(
   return vnode
 }
 
+/**
+ * @description 指令钩子调用
+ * @step1 遍历vnode的dirs，对每个dir执行hook
+ * @step2 如果__COMPAT__为true，且hook不存在，则调用mapCompatDirectiveHook
+ */
 export function invokeDirectiveHook(
   vnode: VNode,
   prevVNode: VNode | null,

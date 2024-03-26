@@ -198,7 +198,12 @@ export type CreateAppFunction<HostElement> = (
 
 let uid = 0
 
-
+/**
+ * @description 创建app对象，从app层面添加全局方法
+ * @step1 创建app对象
+ * @step2 为app对象添加use、mixin、component、directive、mount、unmount、provide、runWithContext方法
+ * @step3 返回app对象
+ */
 export function createAppAPI<HostElement>(
   render: RootRenderFunction<HostElement>,
   hydrate?: RootHydrateFunction,

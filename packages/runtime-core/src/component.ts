@@ -723,6 +723,10 @@ export function isStatefulComponent(instance: ComponentInternalInstance) {
 
 export let isInSSRComponentSetup = false
 
+/**
+ * 
+ * @description 初始化组件实例、属性、插槽
+ */
 export function setupComponent(
   instance: ComponentInternalInstance,
   isSSR = false,

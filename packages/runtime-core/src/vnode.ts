@@ -234,6 +234,12 @@ export interface VNode<
   ce?: (instance: ComponentInternalInstance) => void
 }
 
+/**
+ * 由于 v-if 和 v-for 是节点结构动态改变的两种可能方式，
+ * 一旦我们将 v-if 分支和每个 v-for 片段视为一个块，
+ * 我们就可以将模板划分为嵌套块，并在每个块内将节点结构才会稳定。
+ * 这使我们能够跳过大多数子项比较，只关心动态节点（由patch flags表示）。
+ */
 // Since v-if and v-for are the two possible ways node structure can dynamically
 // change, once we consider v-if branches and each v-for fragment a block, we
 // can divide a template into nested blocks, and within each block the node
@@ -517,6 +523,17 @@ export const createVNode = (
   __DEV__ ? createVNodeWithArgsTransform : _createVNode
 ) as typeof _createVNode
 
+/**
+ * 生产环境的createVNode
+ * @description 标准化props、children，生成vnode 将vnode类型信息编译成位图 最后通过createBaseVNode生成vnode
+ * @param type vnode类型
+ * @param props  元素的属性
+ * @param children 
+ * @param patchFlag
+ * @param dynamicProps 
+ * @param isBlockNode 
+ * @returns 
+ */
 function _createVNode(
   type: VNodeTypes | ClassComponent | typeof NULL_DYNAMIC_COMPONENT,
   props: (Data & VNodeProps) | null = null,
@@ -533,11 +550,12 @@ function _createVNode(
   }
 
   if (isVNode(type)) {
-    // createVNode receiving an existing vnode. This happens in cases like
+    // createVNode receiving an existing vnode. This happens in cases like  createVNode接收现有vnode的情况。这种情况发生在以下情况：
     // <component :is="vnode"/>
-    // #2078 make sure to merge refs during the clone instead of overwriting it
+    // #2078 make sure to merge refs during the clone instead of overwriting it 确保在克隆期间合并引用，而不是覆盖它
     const cloned = cloneVNode(type, props, true /* mergeRef: true */)
     if (children) {
+      // 标准化子节点
       normalizeChildren(cloned, children)
     }
     if (isBlockTreeEnabled > 0 && !isBlockNode && currentBlock) {
@@ -563,7 +581,7 @@ function _createVNode(
 
   // class & style normalization.
   if (props) {
-    // for reactive or proxy objects, we need to clone it to enable mutation.
+    // for reactive or proxy objects, we need to clone it to enable mutation. 对于响应式或代理对象，我们需要克隆它以启用修改
     props = guardReactiveProps(props)!
     let { class: klass, style } = props
     if (klass && !isString(klass)) {
@@ -580,16 +598,17 @@ function _createVNode(
   }
 
   // encode the vnode type information into a bitmap
+  // 将vnode类型信息编译成位图
   const shapeFlag = isString(type)
-    ? ShapeFlags.ELEMENT
+    ? ShapeFlags.ELEMENT // 1 元素
     : __FEATURE_SUSPENSE__ && isSuspense(type)
-      ? ShapeFlags.SUSPENSE
+      ? ShapeFlags.SUSPENSE // 128 suspense
       : isTeleport(type)
-        ? ShapeFlags.TELEPORT
+        ? ShapeFlags.TELEPORT // 64 传送门
         : isObject(type)
-          ? ShapeFlags.STATEFUL_COMPONENT
+          ? ShapeFlags.STATEFUL_COMPONENT // 4 有状态组件
           : isFunction(type)
-            ? ShapeFlags.FUNCTIONAL_COMPONENT
+            ? ShapeFlags.FUNCTIONAL_COMPONENT // 2 函数组件
             : 0
 
   if (__DEV__ && shapeFlag & ShapeFlags.STATEFUL_COMPONENT && isProxy(type)) {

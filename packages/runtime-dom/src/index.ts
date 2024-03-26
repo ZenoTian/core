@@ -60,6 +60,7 @@ function ensureHydrationRenderer() {
 }
 
 // use explicit type casts here to avoid import() calls in rolled-up d.ts
+// 在这里使用显式类型转换以避免在汇总的d. ts中调用import（）
 export const render = ((...args) => {
   ensureRenderer().render(...args)
 }) as RootRenderFunction<Element | ShadowRoot>
@@ -71,6 +72,7 @@ export const hydrate = ((...args) => {
 
 /**
  * Vue应用入口
+ * @vuestep1 创建app对象、重写mount方法、mount挂载
  */
 export const createApp = ((...args) => {
   // 创建app对象
@@ -84,7 +86,8 @@ export const createApp = ((...args) => {
   const { mount } = app
 
   /**
-   * 重写mount方法
+   * 重写mount方法，因为createApp是runtime-dom中针对浏览器平台实现的。
+   * 而runtime-core/src/apiCreateApp.ts文件中createApp方法中的app.mount 是支持跨平台
    * @param containerOrSelector 字符串选择器或者是dom对象
    * @returns 
    */
@@ -118,7 +121,7 @@ export const createApp = ((...args) => {
 
     // clear content before mounting 挂载前清空容器内容
     container.innerHTML = ''
-    // 挂载
+    // 挂载、这里的mount调用的是apiCreateApp的mount
     const proxy = mount(container, false, resolveRootNamespace(container))
     if (container instanceof Element) {
       container.removeAttribute('v-cloak')

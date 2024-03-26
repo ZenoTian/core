@@ -8,6 +8,11 @@ import { devtoolsPerfEnd, devtoolsPerfStart } from './devtools'
 let supported: boolean
 let perf: Performance
 
+/**
+ * @description 开始测量
+ * @param instance 
+ * @param type 
+ */
 export function startMeasure(
   instance: ComponentInternalInstance,
   type: string,
@@ -21,6 +26,11 @@ export function startMeasure(
   }
 }
 
+/**
+ * @description 结束测量
+ * @param instance 
+ * @param type 
+ */
 export function endMeasure(instance: ComponentInternalInstance, type: string) {
   if (instance.appContext.config.performance && isSupported()) {
     const startTag = `vue-${type}-${instance.uid}`
